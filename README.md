@@ -20,21 +20,12 @@ When a Windows endpoint runs the credential-dumping tool **LaZagne**, LimaCharli
 * **Tactics:** [TA0006: Credential Access](https://attack.mitre.org/tactics/TA0006/)
 * **Technique:** [T1555: Credentials from Password Stores](https://attack.mitre.org/techniques/T1555/)
 * **Sub-techniques:** [T1555.003: Credentials from Web Browsers](https://attack.mitre.org/techniques/T1555/003/)
+  
+## 🗺️ Architecture & Workflow
 
-## 🗺️ Architecture & Workflow Pipeline
+The end-to-end incident response playbook is orchestrated through **Tines 3B**, linking EDR telemetry, threat enrichment, analyst decision gates, and ITSM ticketing.
 
-```mermaid
-flowchart LR
-    A[🖥️ Windows Endpoint<br/>LimaCharlie EDR Agent] -->|Process Execution| B[⚙️ Detection & Response Rule]
-    B -->|Webhook Telemetry| C[⚡ Tines 3B SOAR<br/>Receive Alert Action]
-    C --> D[🔍 VirusTotal Enrichment<br/>Hash Reputation Scan]
-    D --> E[💬 Slack Alerting]
-    D --> F[📧 Gmail Notification]
-    E --> G{👤 Analyst Approval Gate<br/>Interactive Web Form}
-    F --> G
-    G -->|True Positive / Approved| H[📝 ServiceNow Incident<br/>Severity 1 - True Positive]
-    H --> I[🛡️ Network Isolation &<br/>Process Termination Task]
-    G -->|False Positive / Rejected| J[📋 ServiceNow Incident<br/>In Progress - Manual Review]
+<img width="928" height="237" alt="Screenshot_15-10-2026_14433_copper-quinoa 3b dev" src="https://github.com/user-attachments/assets/e7050635-07d9-45fe-874a-225020272bbe" />
 
 ##  ⚙️ How it works
 1.Detect: a LimaCharlie D&R rule fires when LaZagne runs.
@@ -65,7 +56,9 @@ LaZagne execution caught by the D&R rule.
 
 ### 3. Slack and Gmail alert
 The alert with the VirusTotal score and the approval link.
+
 <img width="1511" height="502" alt="Screenshot_15-10-2026_141847_mail google com" src="https://github.com/user-attachments/assets/27342f54-d063-491c-a1f8-6b28a2c11567" />
+
 
 <img width="1279" height="260" alt="Screenshot_15-10-2026_141942_app slack com" src="https://github.com/user-attachments/assets/a7e96962-22b0-48f0-b04e-b60aebb4a428" />
 
@@ -80,17 +73,20 @@ The Human-In-The-Loop decision page (Yes or No).
 
 ### 5. Host isolation
 The endpoint isolated from the network after the analyst approved.
+
 <img width="1685" height="686" alt="Screenshot_15-10-2026_144115_app limacharlie io" src="https://github.com/user-attachments/assets/026a9bd2-4882-4ba9-b522-54f2ce4ce941" />
 
 
 
 ### 6. ServiceNow tickets
 Yes path (true positive) and No path (manual investigation).
+
 <img width="1886" height="736" alt="image" src="https://github.com/user-attachments/assets/125ee604-b1e4-47cf-97bd-20928466524e" />
 
 <img width="1748" height="220" alt="Screenshot_15-10-2026_143919_dev374125 service-now com" src="https://github.com/user-attachments/assets/47bd1d8a-41f6-4513-b124-92813c64686f" />
 
 **If the analyst chooses No**, no containment runs. The ticket stays In Progress, and the work note says **manual investigation going on**.
+
 <img width="1744" height="151" alt="Screenshot_15-10-2026_143444_dev374125 service-now com" src="https://github.com/user-attachments/assets/81d0fb1f-6763-4178-af4e-b01d7a9a786c" />
 
 ---
@@ -148,8 +144,4 @@ Keep every secret in the platform's connection store, never in workflow code.
 
 ---
 
-## 👤 Author
 
-**Rida Abbas**
-
----
