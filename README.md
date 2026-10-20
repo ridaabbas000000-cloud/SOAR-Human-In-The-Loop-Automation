@@ -14,8 +14,12 @@ Automated Incident Response playbook using a 3B SOAR workflow, LimaCharlie EDR, 
 ---
 
 ## 📌 Overview
-When a Windows endpoint runs the credential-dumping tool **LaZagne**, LimaCharlie detects it and sends the alert to the SOAR workflow. The workflow checks the file hash on VirusTotal, alerts the SOC on Slack and Gmail, and asks an analyst to approve or decline containment. A **Yes** isolates the host and requests process termination. A **No** sends the alert to manual investigation. Either way, a ServiceNow incident is created.
+When a Windows endpoint runs the credential-dumping tool **LaZagne**, LimaCharlie detects it and sends the alert to the SOAR workflow. The workflow checks the file hash on VirusTotal, alerts the SOC on Slack and Gmail, and asks an analyst to approve or decline containment.
 
+* A **Yes** decision isolates the host and requests process termination.
+* A **No** decision sends the alert to manual investigation. 
+* Either way, a ServiceNow incident ticket is dynamically logged.
+  
 ### 🎯 MITRE ATT&CK Mapping
 * **Tactics:** [TA0006: Credential Access](https://attack.mitre.org/tactics/TA0006/)
 * **Technique:** [T1555: Credentials from Password Stores](https://attack.mitre.org/techniques/T1555/)
@@ -39,22 +43,61 @@ The end-to-end incident response playbook is orchestrated through **Tines 3B**, 
 5.Respond: on Yes, the incident is created and host isolation and process termination are requested through the LimaCharlie API. On No, no containment runs, and a ServiceNow ticket is created to track the manual investigation (it can later be closed as a false positive or escalated).
 
 ---
+## 🛡️ Detection Engineering (LimaCharlie D&R Rule)
 
-## 🖼️ Demo
+To catch credential-harvesting activity before LaZagne can exfiltrate passwords, a custom **Detection and Response (D&R) rule** was authored in LimaCharlie. 
 
-### 1. Workflow
-The full playbook, from alert to ServiceNow ticket.
+The rule evaluates Windows process creation events against file paths, command-line parameters, and known bad file hashes, triggering a report alert and tagging the sensor for tracking.
 
-<img width="928" height="237" alt="Screenshot_15-10-2026_14433_copper-quinoa 3b dev" src="https://github.com/user-attachments/assets/e7050635-07d9-45fe-874a-225020272bbe" />
+### 📄 LimaCharlie D&R Rule (YAML)
 
-### 2. Detection in LimaCharlie
+```yaml
+# Detect Rule Logic
+detect:
+  events:
+    - NEW_PROCESS
+    - EXISTING_PROCESS
+  op: and
+  rules:
+    - op: is windows
+    - op: or
+      rules:
+        - case sensitive: false
+          op: ends with
+          path: event/FILE_PATH
+          value: lazagne.exe
+        - case sensitive: false
+          op: ends with
+          path: event/COMMAND_LINE
+          value: all
+        - case sensitive: false
+          op: contains
+          path: event/COMMAND_LINE
+          value: lazagne
+        - case sensitive: false
+          op: is
+          path: event/HASH
+          value: '3cc5ee93a9ba1fc57389705283b760c8bd61f35e9398bbfa3210e2becf6d4b05'
+
+# Response Rule Logic
+respond:
+  - action: report
+    name: MyDFIR - HackTool - Lazagne (SOAR-EDR)
+  - action: add tag
+    tag: saved credential stealer
+```
+ ## 🖼️ Demo
+
+
+
+### 1. Detection in LimaCharlie
 LaZagne execution caught by the D&R rule.
 
 <img width="1868" height="680" alt="Screenshot_15-10-2026_144024_app limacharlie io" src="https://github.com/user-attachments/assets/e8e25dc4-61b6-45ce-90cd-a0c85d7aa0f3" />
 
 
 
-### 3. Slack and Gmail alert
+### 2. Slack and Gmail alert
 The alert with the VirusTotal score and the approval link.
 
 <img width="1511" height="502" alt="Screenshot_15-10-2026_141847_mail google com" src="https://github.com/user-attachments/assets/27342f54-d063-491c-a1f8-6b28a2c11567" />
@@ -64,21 +107,22 @@ The alert with the VirusTotal score and the approval link.
 
 
 
-### 4. Analyst approval
+### 3. Analyst approval
 The Human-In-The-Loop decision page (Yes or No).
 
 <img width="1619" height="1067" alt="Screenshot_15-10-2026_142511_forprojeccts--copper-quinoa 3b run" src="https://github.com/user-attachments/assets/fc505f8e-2148-460a-b754-c4c7762c6f07" />
 
 
 
-### 5. Host isolation
+### 4. Host isolation
 The endpoint isolated from the network after the analyst approved.
 
-<img width="1685" height="686" alt="Screenshot_15-10-2026_144115_app limacharlie io" src="https://github.com/user-attachments/assets/026a9bd2-4882-4ba9-b522-54f2ce4ce941" />
+<img width="1283" height="458" alt="image" src="https://github.com/user-attachments/assets/bca52bb5-e832-4711-af71-097ae4c6a5e1" />
 
 
 
-### 6. ServiceNow tickets
+
+### 5. ServiceNow tickets
 Yes path (true positive) and No path (manual investigation).
 
 <img width="1886" height="736" alt="image" src="https://github.com/user-attachments/assets/125ee604-b1e4-47cf-97bd-20928466524e" />
